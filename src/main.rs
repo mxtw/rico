@@ -1,5 +1,7 @@
 use clap::{Parser, Subcommand};
 
+mod runtime;
+
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
 struct Cli {
@@ -18,6 +20,7 @@ fn main() {
     match &cli.command {
         Commands::Run { name } => {
             println!("`run` called with {name:?}");
+            runtime::runtime::test();
         }
     }
 }
