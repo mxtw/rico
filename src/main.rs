@@ -24,7 +24,7 @@ fn main() {
             println!("`run` called with {name:?}");
 
             let cmd = CString::new("/bin/sh").unwrap();
-            let args = [cmd.clone(), CString::new("-i").unwrap()].to_vec();
+            let args = [cmd.clone(), CString::new("-l").unwrap()].to_vec();
 
             runtime::runtime::run_process(cmd, args);
         }

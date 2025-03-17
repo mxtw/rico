@@ -1,9 +1,34 @@
 use std::ffi::CString;
-use std::process;
+use std::io::Write;
+use std::{fs, path, process};
 
+use nix::libc::{getegid, geteuid};
 use nix::sched::{unshare, CloneFlags};
 use nix::sys::wait::{waitpid, WaitStatus};
-use nix::unistd::{execve, fork, getpid, ForkResult};
+use nix::unistd::{execve, fork, getpid, ForkResult, Pid};
+
+fn write_file(path: &str, content: &str) {
+    let mut file = fs::OpenOptions::new().write(true).open(path).unwrap();
+    file.write_all(content.as_bytes()).unwrap();
+}
+
+fn set_uid_map(pid: Pid) {
+    let path = format!("/proc/{}/uid_map", pid);
+    let euid = unsafe { geteuid() };
+    let uid_map = format!("1000 {} 1\n", euid);
+
+    write_file(&path, &uid_map);
+}
+fn set_gid_map(pid: Pid) {
+    let path = format!("/proc/{}/gid_map", pid);
+    let egid = unsafe { getegid() };
+    let gid_map = format!("1000 {} 1\n", egid);
+
+    write_file(&path, &gid_map);
+}
+fn setgroups(pid: Pid) {
+    write_file(&format!("/proc/{}/setgroups", pid), &"deny\n")
+}
 
 pub fn run_process(command: CString, args: Vec<CString>) {
     let flags = CloneFlags::CLONE_NEWPID
@@ -17,6 +42,10 @@ pub fn run_process(command: CString, args: Vec<CString>) {
         Ok(ForkResult::Parent { child }) => {
             println!("parent pid: {} (child pid: {})", getpid(), child);
             println!("waiting for child {} to exit...", child);
+
+            setgroups(child);
+            set_uid_map(child);
+            set_gid_map(child);
 
             match waitpid(child, None) {
                 Ok(WaitStatus::Exited(_, status)) => {
