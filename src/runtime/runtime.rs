@@ -3,6 +3,7 @@ use std::process;
 
 use nix::libc::clone_args;
 use nix::sched::{unshare, CloneFlags};
+use nix::sys::wait::{waitpid, WaitStatus};
 use nix::unistd::{execve, fork, getpid, ForkResult};
 
 pub fn test() {
@@ -18,12 +19,21 @@ pub fn test() {
     match unsafe { fork() } {
         Ok(ForkResult::Parent { child }) => {
             println!("parent pid: {} (child pid: {})", getpid(), child);
+            println!("waiting for child {} to exit...", child);
+
+            match waitpid(child, None) {
+                Ok(WaitStatus::Exited(_, status)) => {
+                    println!("child exited with status: {}", status);
+                }
+                Ok(_) => eprintln!("child did not exit as expected"),
+                Err(err) => eprintln!("error waiting for child: {}", err),
+            }
         }
         Ok(ForkResult::Child) => {
             println!("child pid: {}", getpid());
 
             let cmd = CString::new("/bin/sh").unwrap();
-            let args = [cmd.clone(), CString::new("-l").unwrap()];
+            let args = [cmd.clone(), CString::new("-i").unwrap()];
             let env: Vec<CString> = Vec::new();
 
             let _ = execve(&cmd, &args, &env);
