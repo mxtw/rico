@@ -1,3 +1,5 @@
+use std::ffi::CString;
+
 use clap::{Parser, Subcommand};
 
 mod runtime;
@@ -20,7 +22,11 @@ fn main() {
     match &cli.command {
         Commands::Run { name } => {
             println!("`run` called with {name:?}");
-            runtime::runtime::test();
+
+            let cmd = CString::new("/bin/sh").unwrap();
+            let args = [cmd.clone(), CString::new("-i").unwrap()].to_vec();
+
+            runtime::runtime::run_process(cmd, args);
         }
     }
 }

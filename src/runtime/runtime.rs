@@ -1,14 +1,11 @@
 use std::ffi::CString;
 use std::process;
 
-use nix::libc::clone_args;
 use nix::sched::{unshare, CloneFlags};
 use nix::sys::wait::{waitpid, WaitStatus};
 use nix::unistd::{execve, fork, getpid, ForkResult};
 
-pub fn test() {
-    println!("test");
-
+pub fn run_process(command: CString, args: Vec<CString>) {
     let flags = CloneFlags::CLONE_NEWPID
         | CloneFlags::CLONE_NEWUTS
         | CloneFlags::CLONE_NEWNS
@@ -32,11 +29,9 @@ pub fn test() {
         Ok(ForkResult::Child) => {
             println!("child pid: {}", getpid());
 
-            let cmd = CString::new("/bin/sh").unwrap();
-            let args = [cmd.clone(), CString::new("-i").unwrap()];
             let env: Vec<CString> = Vec::new();
 
-            let _ = execve(&cmd, &args, &env);
+            let _ = execve(&command, &args, &env);
 
             // this should never be reached, as execve replaces the child
             eprintln!("execve failed");
