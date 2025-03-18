@@ -45,6 +45,8 @@
             cargo-edit
             cargo-watch
             rust-analyzer
+
+            gef
           ];
 
           env = {

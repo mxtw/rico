@@ -1,33 +1,33 @@
 use std::ffi::CString;
 use std::io::Write;
-use std::{fs, path, process};
+use std::{fs, process};
 
-use nix::libc::{getegid, geteuid};
 use nix::sched::{unshare, CloneFlags};
 use nix::sys::wait::{waitpid, WaitStatus};
 use nix::unistd::{execve, fork, getpid, ForkResult, Pid};
 
 fn write_file(path: &str, content: &str) {
+    println!("{}", path);
+
     let mut file = fs::OpenOptions::new().write(true).open(path).unwrap();
     file.write_all(content.as_bytes()).unwrap();
 }
 
 fn set_uid_map(pid: Pid) {
     let path = format!("/proc/{}/uid_map", pid);
-    let euid = unsafe { geteuid() };
-    let uid_map = format!("1000 {} 1\n", euid);
+    let uid_map = format!("0 {} 1\n", 1000);
+    println!("{}", uid_map);
 
-    write_file(&path, &uid_map);
+    write_file(&path, uid_map.to_string().as_str());
 }
 fn set_gid_map(pid: Pid) {
     let path = format!("/proc/{}/gid_map", pid);
-    let egid = unsafe { getegid() };
-    let gid_map = format!("1000 {} 1\n", egid);
+    let gid_map = format!("0 {} 1\n", 100);
 
     write_file(&path, &gid_map);
 }
 fn setgroups(pid: Pid) {
-    write_file(&format!("/proc/{}/setgroups", pid), &"deny\n")
+    write_file(&format!("/proc/{}/setgroups", pid), &"deny\n");
 }
 
 pub fn run_process(command: CString, args: Vec<CString>) {
