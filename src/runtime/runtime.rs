@@ -4,7 +4,7 @@ use std::{fs, process};
 
 use nix::sched::{unshare, CloneFlags};
 use nix::sys::wait::{waitpid, WaitStatus};
-use nix::unistd::{execve, fork, getpid, ForkResult, Pid};
+use nix::unistd::{execve, fork, getgid, getpid, getuid, ForkResult, Gid, Pid, Uid};
 
 fn write_file(path: &str, content: &str) {
     println!("{}", path);
@@ -13,16 +13,16 @@ fn write_file(path: &str, content: &str) {
     file.write_all(content.as_bytes()).unwrap();
 }
 
-fn set_uid_map(pid: Pid) {
+fn set_uid_map(pid: Pid, uid: Uid) {
     let path = format!("/proc/{}/uid_map", pid);
-    let uid_map = format!("0 {} 1\n", 1000);
+    let uid_map = format!("0 {} 1\n", uid);
     println!("{}", uid_map);
 
     write_file(&path, uid_map.to_string().as_str());
 }
-fn set_gid_map(pid: Pid) {
+fn set_gid_map(pid: Pid, gid: Gid) {
     let path = format!("/proc/{}/gid_map", pid);
-    let gid_map = format!("0 {} 1\n", 100);
+    let gid_map = format!("0 {} 1\n", gid);
 
     write_file(&path, &gid_map);
 }
@@ -36,6 +36,10 @@ pub fn run_process(command: CString, args: Vec<CString>) {
         | CloneFlags::CLONE_NEWNS
         | CloneFlags::CLONE_NEWUSER;
 
+    // get *ids before unsharing
+    let uid = getuid();
+    let gid = getgid();
+
     unshare(flags).unwrap();
 
     match unsafe { fork() } {
@@ -44,8 +48,8 @@ pub fn run_process(command: CString, args: Vec<CString>) {
             println!("waiting for child {} to exit...", child);
 
             setgroups(child);
-            set_uid_map(child);
-            set_gid_map(child);
+            set_uid_map(child, uid);
+            set_gid_map(child, gid);
 
             match waitpid(child, None) {
                 Ok(WaitStatus::Exited(_, status)) => {
