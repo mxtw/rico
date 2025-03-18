@@ -4,6 +4,7 @@ use std::{fs, process};
 
 use nix::sched::{unshare, CloneFlags};
 use nix::sys::wait::{waitpid, WaitStatus};
+use nix::unistd::chroot;
 use nix::unistd::{execve, fork, getgid, getpid, getuid, ForkResult, Gid, Pid, Uid};
 
 fn write_file(path: &str, content: &str) {
@@ -67,6 +68,12 @@ pub fn run_process(command: CString, args: Vec<CString>) {
             println!("child pid: {}", getpid());
 
             let env: Vec<CString> = Vec::new();
+
+            // TODO: make this configurable
+            // using
+            // https://dl-cdn.alpinelinux.org/alpine/v3.21/releases/x86_64/alpine-minirootfs-3.21.3-x86_64.tar.gz
+            // for testing
+            chroot("./alpine").unwrap();
 
             let _ = execve(&command, &args, &env);
 
