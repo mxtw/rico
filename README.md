@@ -1,11 +1,18 @@
 # rico
 
+"**OCI** **R**untime" in reverse = **rico**
+
 ## About this project
 
-A minimal implementation of a container runtime in rust.
+**rico** is an attempt at a minimal implementation of a container runtime in Rust.
+The goal is to learn more about Rust, container runtimes and the OCI specs.
 
-This project was created so i could learn more about container runtimes, oci and rust.
+### Current Focus
 
-## The Name
+For now, I will plan to be able to run very basic containers. Depending on
+future motivation, I may continue working on compliance with the [oci-runtime spec](https://github.com/opencontainers/runtime-spec).
 
-"**OCI** **R**untime" in reverse = **rico**
+### Caveats
+
+This project is not and will likely never be a production-ready OCI runtime.
+It only exists as a personal learning and exploration project.
