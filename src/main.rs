@@ -13,20 +13,24 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    Run { name: Option<String> },
+    Run {
+        name: Option<String>,
+        #[clap(long)]
+        rootfs: String,
+    },
 }
 
 fn main() {
     let cli = Cli::parse();
 
     match &cli.command {
-        Commands::Run { name } => {
+        Commands::Run { name, rootfs } => {
             println!("`run` called with {name:?}");
 
             let cmd = CString::new("/bin/sh").unwrap();
             let args = [cmd.clone(), CString::new("-l").unwrap()].to_vec();
 
-            runtime::runtime::run_process(cmd, args);
+            runtime::runtime::run_process(cmd, args, rootfs.as_str());
         }
     }
 }

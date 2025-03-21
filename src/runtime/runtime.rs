@@ -1,13 +1,12 @@
 use std::ffi::CString;
 use std::fs::{create_dir, remove_dir};
 use std::io::Write;
-use std::path::Path;
 use std::{fs, process};
 
-use nix::mount::{mount, umount, umount2, MntFlags, MsFlags};
+use nix::mount::{mount, umount2, MntFlags, MsFlags};
 use nix::sched::{unshare, CloneFlags};
 use nix::sys::wait::{waitpid, WaitStatus};
-use nix::unistd::{chdir, chroot, pivot_root};
+use nix::unistd::{chdir, pivot_root};
 use nix::unistd::{execve, fork, getgid, getpid, getuid, ForkResult, Gid, Pid, Uid};
 
 fn write_file(path: &str, content: &str) {
@@ -58,7 +57,11 @@ fn change_root(new_root: &str) -> Result<(), std::io::Error> {
     Ok(())
 }
 
-pub fn run_process(command: CString, args: Vec<CString>) -> Result<(), Box<dyn std::error::Error>> {
+pub fn run_process(
+    command: CString,
+    args: Vec<CString>,
+    rootfs: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
     let flags = CloneFlags::CLONE_NEWPID
         | CloneFlags::CLONE_NEWUTS
         | CloneFlags::CLONE_NEWNS
@@ -99,7 +102,7 @@ pub fn run_process(command: CString, args: Vec<CString>) -> Result<(), Box<dyn s
             // using
             // https://dl-cdn.alpinelinux.org/alpine/v3.21/releases/x86_64/alpine-minirootfs-3.21.3-x86_64.tar.gz
             // for testing
-            change_root("./alpine")?;
+            change_root(rootfs)?;
             execve(&command, &args, &env)?;
 
             // this should never be reached, as execve replaces the child
